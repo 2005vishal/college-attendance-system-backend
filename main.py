@@ -12,7 +12,7 @@ from typing import Optional
 
 from database import Base, engine, SessionLocal
 from models import Student, Attendance, Admin
-from schemas import StudentCreate, StudentResponse, AttendanceOut, AdminLogin
+from schemas import StudentCreate, StudentResponse, AttendanceOut, AdminLogin, MarkAttendance
 from auth import create_access_token, verify_password, get_password_hash
 import crud
 from dotenv import load_dotenv
@@ -266,7 +266,63 @@ def list_attendance(
 
     records = q.all()
     return records
+# --------------mark attendance------------------
+@app.post("/attendance/mark")
+def mark_attendance(attendance_data: MarkAttendance, db: Session = Depends(get_db)):
+    # 1. Check if student exists
+    student = db.query(Student).filter(Student.roll == attendance_data.roll).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
 
+    # 2. Check if date matches today
+    today = date.today()
+    if attendance_data.date != today:
+        raise HTTPException(status_code=400, detail="Invalid date")
+
+    # 3. Check if attendance already exists
+    record = db.query(Attendance).filter(
+        Attendance.roll == attendance_data.roll,
+        Attendance.date == today
+    ).first()
+
+    if record:
+        return {"message": "Attendance already marked"}
+
+    # 4. Mark attendance as Present
+    new_record = Attendance(
+        roll=attendance_data.roll,
+        date=today,
+        status="Present"
+    )
+    db.add(new_record)
+    db.commit()
+    db.refresh(new_record)
+
+    return {"message": "Attendance marked as Present"}
+
+#----------------------mark attendance part2---------------------------------
+def mark_absent_students():
+    db = SessionLocal()
+    today = date.today()
+    # Find all students
+    students = db.query(Student).all()
+    for student in students:
+        # Check if attendance already marked
+        record = db.query(Attendance).filter(
+            Attendance.roll == student.roll,
+            Attendance.date == today
+        ).first()
+        if not record:
+            # Mark absent if attendance not recorded
+            absent_record = Attendance(
+                roll=student.roll,
+                date=today,
+                status="Absent"
+            )
+            db.add(absent_record)
+    db.commit()
+    db.close()
+    print("Marked absent for students who did not scan today.")
 
 # ----------------- Scheduled Tasks -----------------
 def delete_expired_students():
@@ -303,15 +359,16 @@ def cleanup_old_attendance():
 
 
 scheduler = BackgroundScheduler()
+scheduler.add_job(mark_absent_students, 'cron', hour=11, minute=30)
 scheduler.add_job(delete_expired_students, 'cron', hour=0, minute=0)
 scheduler.add_job(cleanup_old_attendance, 'cron', hour=0, minute=30)
 scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
 
-
 @app.on_event("startup")
 def startup_event():
-    print("Scheduler started for expired students and attendance cleanup.")
+    print("All scheduled tasks started.")
+
 
 
 @app.get("/")

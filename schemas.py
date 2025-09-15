@@ -39,3 +39,10 @@ class AttendanceBase(BaseModel):
 class AttendanceOut(AttendanceBase):
     class Config:
         orm_mode = True
+
+
+
+class MarkAttendance(BaseModel):
+    roll: str
+    date: date
+

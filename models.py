@@ -34,8 +34,11 @@ class Attendance(Base):
     __tablename__ = "attendance"
 
     id = Column(Integer, primary_key=True, index=True)
-    roll = Column(String(20), ForeignKey("students.roll"))
+    roll = Column(String(20), ForeignKey("students.roll"), index=True)  # Added index
     date = Column(Date, nullable=False)
     status = Column(String(10), nullable=False)
 
     student = relationship("Student", back_populates="attendances")
+
+
+
