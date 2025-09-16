@@ -323,13 +323,6 @@ def mark_absent_students():
     db.close()
     print("Marked absent for students who did not scan today.")
 
-# Set up the scheduler job
-scheduler = BackgroundScheduler()
-scheduler.add_job(mark_absent_students, 'cron', hour=11, minute=30)  # Runs every day at 11:30 AM
-scheduler.start()
-atexit.register(lambda: scheduler.shutdown())
-
-
 
 # ----------------- Scheduled Tasks -----------------
 def delete_expired_students():
@@ -366,19 +359,16 @@ def cleanup_old_attendance():
 
 
 scheduler = BackgroundScheduler()
+scheduler.add_job(mark_absent_students, 'cron', hour=11, minute=30)
 scheduler.add_job(delete_expired_students, 'cron', hour=0, minute=0)
 scheduler.add_job(cleanup_old_attendance, 'cron', hour=0, minute=30)
 scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
 
-
 @app.on_event("startup")
 def startup_event():
-    print("Scheduler started for expired students and attendance cleanup.")
+    print("All scheduled tasks started.")
 
-@app.on_event("startup")
-def start_absent_scheduler():
-    print("Scheduler started for marking absent students at 11:30 AM.")
 
 
 
