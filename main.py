@@ -359,7 +359,7 @@ def cleanup_old_attendance():
 
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(mark_absent_students, 'cron', hour=11, minute=55)
+scheduler.add_job(mark_absent_students, 'cron', hour=12, minute=5)
 scheduler.add_job(delete_expired_students, 'cron', hour=0, minute=0)
 scheduler.add_job(cleanup_old_attendance, 'cron', hour=0, minute=30)
 scheduler.start()
