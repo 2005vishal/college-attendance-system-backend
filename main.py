@@ -212,29 +212,43 @@ async def api_mark_absent_students(
     return {"message": "Absent students marked"}
 
 
-
-
 @app.post("/tasks/delete-expired-students")
-def api_delete_expired_students(api_key: str = Header(...), db: Session = Depends(get_db)):
-    verify_api_key(api_key)
+async def api_delete_expired_students(
+        request: Request,
+        mark_absent_api_key: str = Header(None),
+        db: Session = Depends(get_db)
+):
+    # Verify API key
+    verify_api_key(mark_absent_api_key)
+
     today = datetime.today()
-    count = 0
-    students = db.query(Student).all()
+    deleted_count = 0
+
+    # Fetch students with valid issue_valid
+    students = db.query(Student).filter(Student.issue_valid != None).all()
+
     for student in students:
-        if student.issue_valid:
-            try:
-                end_year = int(student.issue_valid.split("-")[1])
-                if end_year < 100:
-                    end_year += 2000
-                expire_date = datetime(end_year, 12, 31)
-                if today > expire_date:
-                    db.query(Attendance).filter(Attendance.roll == student.roll).delete()
-                    db.delete(student)
-                    db.commit()
-                    count += 1
-            except Exception as e:
-                print(f"Error deleting student {student.roll}: {e}")
-    return {"message": f"{count} expired students deleted"}
+        try:
+            end_year_part = student.issue_valid.split("-")[1]
+            end_year = int(end_year_part)
+            if end_year < 100:
+                end_year += 2000
+
+            expire_date = datetime(end_year, 12, 31)
+
+            if today > expire_date:
+                # Delete student's attendance records
+                db.query(Attendance).filter(Attendance.roll == student.roll).delete()
+                # Delete student record
+                db.delete(student)
+                deleted_count += 1
+
+        except Exception as e:
+            print(f"Error deleting student {student.roll}: {e}")
+
+    db.commit()
+
+    return {"message": f"{deleted_count} expired students deleted"}
 
 
 @app.post("/tasks/cleanup-old-attendance")
