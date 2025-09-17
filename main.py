@@ -191,6 +191,10 @@ def list_attendance(
 
 
 # ----------------- Secure Scheduled Tasks APIs -----------------
+from fastapi import FastAPI, Header, HTTPException, Request, Depends
+from sqlalchemy.orm import Session
+from datetime import date
+
 @app.post("/tasks/mark-absent")
 async def api_mark_absent_students(
     request: Request,
