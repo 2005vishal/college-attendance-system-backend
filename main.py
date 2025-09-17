@@ -267,19 +267,6 @@ async def api_cleanup_old_attendance(
     return {"message": f"{deleted_count} old attendance records deleted"}
 
 
-#------------------------------------------
-from fastapi import Request
-
-@app.post("/tasks/test-header")
-async def test_header(request: Request, api_key: str = Header(None)):
-    headers = dict(request.headers)
-    return {
-        "api_key": api_key,
-        "all_headers": headers
-    }
-
-
-
 # ----------------- Root -----------------
 @app.get("/")
 def read_root():
