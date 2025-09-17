@@ -191,9 +191,22 @@ def list_attendance(
 
 
 # ----------------- Secure Scheduled Tasks APIs -----------------
+from fastapi import FastAPI, Header, HTTPException, Request, Depends
+from sqlalchemy.orm import Session
+from datetime import date
+
 @app.post("/tasks/mark-absent")
-def api_mark_absent_students(api_key: str = Header(...), db: Session = Depends(get_db)):
+async def api_mark_absent_students(
+    request: Request,
+    api_key: str = Header(...),
+    db: Session = Depends(get_db)
+):
     verify_api_key(api_key)
+    try:
+        body = await request.json()
+    except:
+        body = None
+
     today = date.today()
     students = db.query(Student).all()
     for student in students:
@@ -202,7 +215,12 @@ def api_mark_absent_students(api_key: str = Header(...), db: Session = Depends(g
             absent_record = Attendance(roll=student.roll, date=today, status="Absent")
             db.add(absent_record)
     db.commit()
-    return {"message": "Absent students marked"}
+
+    return {
+        "message": "Absent students marked",
+        "body_data": body
+    }
+
 
 
 @app.post("/tasks/delete-expired-students")
