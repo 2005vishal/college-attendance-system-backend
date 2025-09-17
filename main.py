@@ -191,21 +191,24 @@ def list_attendance(
 
 
 # ----------------- Secure Scheduled Tasks APIs -----------------
-from fastapi import FastAPI, Header, HTTPException, Request, Depends
-from sqlalchemy.orm import Session
-from datetime import date
-
 @app.post("/tasks/mark-absent")
 async def api_mark_absent_students(
     request: Request,
-    api_key: str = Header(...),
+    api_key: str = Header(None),
     db: Session = Depends(get_db)
 ):
+    print("Received request at /tasks/mark-absent")  # लॉग देखें
+    print("Headers:", dict(request.headers))        # सभी headers देखें
+    print("API Key:", api_key)                      # api_key क्या मिला है
+
     verify_api_key(api_key)
+
     try:
         body = await request.json()
     except:
         body = None
+
+    print("Body:", body)
 
     today = date.today()
     students = db.query(Student).all()
@@ -216,10 +219,8 @@ async def api_mark_absent_students(
             db.add(absent_record)
     db.commit()
 
-    return {
-        "message": "Absent students marked",
-        "body_data": body
-    }
+    return {"message": "Absent students marked", "body_data": body}
+
 
 
 
