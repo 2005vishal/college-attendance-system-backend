@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form, Query, Header
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form, Query, Header,Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, date
@@ -191,20 +191,15 @@ def list_attendance(
 
 
 # ----------------- Secure Scheduled Tasks APIs -----------------
-from fastapi import FastAPI, Header, HTTPException, Request, Depends
-from sqlalchemy.orm import Session
-from datetime import date
-
 @app.post("/tasks/mark-absent")
 async def api_mark_absent_students(
     request: Request,
-    mark_absent_api_key: str = Header(...),   # यहाँ नाम बदलें
+    mark_absent_api_key: str = Header(...),
     db: Session = Depends(get_db)
 ):
-    # अब आप यहाँ mark_absent_api_key का उपयोग कर सकते हैं
+
     verify_api_key(mark_absent_api_key)
 
-    # बाकी का लॉजिक
     today = date.today()
     students = db.query(Student).all()
     for student in students:
@@ -243,12 +238,18 @@ def api_delete_expired_students(api_key: str = Header(...), db: Session = Depend
 
 
 @app.post("/tasks/cleanup-old-attendance")
-def api_cleanup_old_attendance(api_key: str = Header(...), db: Session = Depends(get_db)):
-    verify_api_key(api_key)
+async def api_cleanup_old_attendance(
+    request: Request,
+    mark_absent_api_key: str = Header(None),
+    db: Session = Depends(get_db)
+):
+    verify_api_key(mark_absent_api_key)
+
     today = datetime.today()
     cutoff_date = today - timedelta(days=365)
     deleted_count = db.query(Attendance).filter(Attendance.date < cutoff_date.date()).delete()
     db.commit()
+
     return {"message": f"{deleted_count} old attendance records deleted"}
 
 
