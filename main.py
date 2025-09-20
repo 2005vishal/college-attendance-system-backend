@@ -154,7 +154,7 @@ def get_student(roll: str, db: Session = Depends(get_db)):
     if not s:
         raise HTTPException(status_code=404, detail="Not found")
     return s
-# --------------------update jstudent deetal-----------------
+# --------------------update student detail-----------------
 @app.put("/students/{roll}", response_model=StudentResponse)
 def update_student(
     roll: str,
@@ -205,6 +205,24 @@ def update_student(
     db.commit()
     db.refresh(s)
     return s
+#---------------------delete student--------------------------
+@app.delete("/students/{roll}")
+def delete_student(roll: str, db: Session = Depends(get_db)):
+    s = db.query(Student).filter(Student.roll == roll.upper()).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    if s.photo_public_id:
+        try:
+            cloudinary.uploader.destroy(s.photo_public_id)
+        except Exception as e:
+            print(f"Failed to delete image from Cloudinary: {e}")
+
+    db.query(Attendance).filter(Attendance.roll == roll.upper()).delete(synchronize_session=False)
+    db.delete(s)
+    db.commit()
+    return {"ok": True}
+
 
 # ----------------- Attendance APIs -----------------
 @app.post("/attendance/mark")
