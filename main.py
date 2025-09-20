@@ -236,7 +236,7 @@ def mark_attendance(attendance_data: MarkAttendance, db: Session = Depends(get_d
     record = db.query(Attendance).filter(Attendance.roll == attendance_data.roll, Attendance.date == today).first()
     if record:
         return {"message": "Attendance already marked"}
-    new_record = Attendance(roll=attendance_data.roll, date=today, status="Present")
+    new_record = Attendance(roll=attendance_data.roll, date=today,time=attendance_data.time, status="Present")
     db.add(new_record)
     db.commit()
     db.refresh(new_record)

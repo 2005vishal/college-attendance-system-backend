@@ -33,6 +33,7 @@ class StudentResponse(StudentBase):
 class AttendanceBase(BaseModel):
     roll: str
     date: date
+    time: str
     status: str
 
 
@@ -45,4 +46,5 @@ class AttendanceOut(AttendanceBase):
 class MarkAttendance(BaseModel):
     roll: str
     date: date
+    time: str
 
