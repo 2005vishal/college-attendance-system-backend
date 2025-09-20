@@ -147,7 +147,64 @@ def list_students(
         q = q.filter(Student.issue_date >= cutoff)
     students = q.offset((page - 1) * pageSize).limit(pageSize).all()
     return students
+# ---------------------------------get student detail--------------------
+@app.get("/students/{roll}", response_model=StudentResponse)
+def get_student(roll: str, db: Session = Depends(get_db)):
+    s = db.query(Student).filter(Student.roll == roll.upper()).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Not found")
+    return s
+# --------------------update jstudent deetal-----------------
+@app.put("/students/{roll}", response_model=StudentResponse)
+def update_student(
+    roll: str,
+    name: Optional[str] = Form(None),
+    dob: Optional[str] = Form(None),
+    issue_valid: Optional[str] = Form(None),
+    branch: Optional[str] = Form(None),
+    pin: Optional[str] = Form(None),
+    photo: UploadFile = File(None),
+    db: Session = Depends(get_db)
+):
+    s = db.query(Student).filter(Student.roll == roll.upper()).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Student not found")
 
+    # ---------------- Upload photo to Cloudinary ----------------
+    if photo:
+        # Delete old photo if exists
+        if s.photo_public_id:
+            try:
+                cloudinary.uploader.destroy(s.photo_public_id)
+            except Exception as e:
+                print(f"Failed to delete old image: {e}")
+
+        # Upload new photo
+        upload_result = cloudinary.uploader.upload(photo.file, folder="students")
+        s.photo = upload_result.get("secure_url")
+        s.photo_public_id = upload_result.get("public_id")
+
+    # ---------------- Update other fields ----------------
+    if name is not None and name.strip() != "":
+        s.name = " ".join(word.capitalize() for word in name.split())
+
+    if dob is not None and dob.strip() != "":
+        s.dob = datetime.strptime(dob, "%Y-%m-%d").date()
+
+    if issue_valid is not None and issue_valid.strip() != "":
+        s.issue_valid = issue_valid
+
+    if branch is not None and branch.strip() != "":
+        s.branch = branch
+
+    if pin is not None and pin.strip() != "":
+        if len(pin) != 4 or not pin.isdigit():
+            raise HTTPException(status_code=400, detail="PIN must be exactly 4 digits")
+        s.pin = get_password_hash(pin)
+
+    db.commit()
+    db.refresh(s)
+    return s
 
 # ----------------- Attendance APIs -----------------
 @app.post("/attendance/mark")

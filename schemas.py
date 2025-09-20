@@ -19,7 +19,7 @@ class StudentBase(BaseModel):
     dob: date
     issue_valid: str
     pin: str
-    photo: str | None = None
+    photo: str   # ✅ now mandatory (no None, no default)
 
 class StudentCreate(StudentBase):
     pass
